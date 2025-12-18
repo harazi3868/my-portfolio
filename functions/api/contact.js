@@ -1,10 +1,6 @@
-import nodemailer from 'nodemailer';
-
-export async function onRequestPost(context) {
+export async function onRequestPost({ request, env }) {
   try {
-    const { request, env } = context;
     const body = await request.json();
-    
     const { name, email, projectType, message } = body;
 
     if (!name || !email || !message) {
@@ -14,38 +10,37 @@ export async function onRequestPost(context) {
       );
     }
 
-    // Create transporter using environment variables from Cloudflare
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: env.EMAIL_USER,
-        pass: env.EMAIL_PASS,
+    const htmlContent = `
+      <h3>New Contact Form Submission</h3>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Project Type:</strong> ${projectType || 'Not specified'}</p>
+      <br/>
+      <p><strong>Message:</strong></p>
+      <p style="white-space: pre-wrap;">${message}</p>
+    `;
+
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
       },
+      body: JSON.stringify({
+        from: 'Portfolio Contact <onboarding@resend.dev>',
+        to: 'apdirahiimipraahim@gmail.com',
+        reply_to: email,
+        subject: `Portfolio Contact: ${projectType || 'General Inquiry'} from ${name}`,
+        html: htmlContent,
+      }),
     });
 
-    await transporter.sendMail({
-      from: env.EMAIL_USER,
-      replyTo: email,
-      to: 'apdirahiimipraahim@gmail.com',
-      subject: `Portfolio Contact: ${projectType || 'General Inquiry'} from ${name}`,
-      text: `
-        Name: ${name}
-        Email: ${email}
-        Project Type: ${projectType || 'Not specified'}
-        
-        Message:
-        ${message}
-      `,
-      html: `
-        <h3>New Contact Form Submission</h3>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Project Type:</strong> ${projectType || 'Not specified'}</p>
-        <br/>
-        <p><strong>Message:</strong></p>
-        <p style="white-space: pre-wrap;">${message}</p>
-      `,
-    });
+    const data = await resendResponse.json();
+
+    if (!resendResponse.ok) {
+      console.error('Resend API Error:', data);
+      throw new Error(data.message || 'Failed to send email via Resend');
+    }
 
     return new Response(
       JSON.stringify({ message: 'Email sent successfully' }),

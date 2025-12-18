@@ -55,42 +55,62 @@ On the "Set up builds and deployments" page:
 2. **Production branch**: `main`
 
 3. **Build settings**:
-   - **Framework preset**: Select "Vite"
+   - **Framework preset**: Select "Vite" (Do NOT select Next.js)
    - **Build command**: `npm run build`
    - **Build output directory**: `dist`
+
+   > [!WARNING]
+   > Do NOT use the command `npx @cloudflare/next-on-pages`. That is only for Next.js apps.
+   > Your project is a Vite + React app. Ensure the Build command is exactly `npm run build`.
 
 4. Click "Save and Deploy"
 
 ---
 
-## Step 4: Add Environment Variables
+## Step 4: Add Node.js Compatibility Flag
 
-After the initial deployment (it may fail without these):
+Your application uses Node.js built-in modules (like `crypto`), which require a compatibility flag:
 
 1. **Go to your project settings**
-   - Click on your project name
+   - Click on your project name in Cloudflare Pages
    - Go to "Settings" tab
-   - Click "Environment variables" in the left menu
+   - Scroll down to "Functions" section
 
-2. **Add the following variables**:
-   
-   | Variable Name | Value | Environment |
-   |--------------|-------|-------------|
-   | `EMAIL_USER` | Your Gmail address | Production |
-   | `EMAIL_PASS` | Your Gmail app password* | Production |
+2. **Add compatibility flag**
+   - Find "Compatibility flags" 
+   - Click "Add flag"
+   - Enter: `nodejs_compat`
+   - Click "Save"
 
-   *To get a Gmail app password:
-   - Go to https://myaccount.google.com/security
-   - Enable 2-Step Verification if not already enabled
-   - Go to "App passwords"
-   - Generate a new app password for "Mail"
-   - Copy the 16-character password
-
-3. **Click "Save"**
+> [!IMPORTANT]
+> Without this flag, your build will fail with the error: "Could not resolve 'crypto'"
 
 ---
 
-## Step 5: Redeploy
+## Step 5: Add Resend API Key
+
+We switched to Resend for reliable email delivery on Cloudflare.
+
+1. **Get your API Key**
+   - Sign up for free at [resend.com](https://resend.com)
+   - Go to "API Keys" -> "Create API Key"
+   - Name it "Portfolio" and copy the key (starts with `re_`)
+
+2. **Add it to Cloudflare**
+   - Go to your Cloudflare Pages project settings
+   - Go to "Settings" -> "Environment variables"
+   - Add a new variable:
+     - **Variable name**: `RESEND_API_KEY`
+     - **Value**: (Paste your Resend API Key)
+   - Click "Save"
+
+> [!NOTE]
+> You don't need `EMAIL_USER` or `EMAIL_PASS` anymore. You can delete them.
+> The `nodejs_compat` flag added in Step 4 is still good practice to keep.
+
+---
+
+## Step 6: Redeploy
 
 After adding environment variables:
 
@@ -101,7 +121,7 @@ After adding environment variables:
 
 ---
 
-## Step 6: Verify Your Deployment
+## Step 7: Verify Your Deployment
 
 1. **Visit your site**
    - Your site will be live at: `https://your-project-name.pages.dev`
@@ -120,7 +140,7 @@ After adding environment variables:
 
 ---
 
-## Step 7: Custom Domain (Optional)
+## Step 8: Custom Domain (Optional)
 
 To use your own domain:
 
